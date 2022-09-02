@@ -24,6 +24,31 @@ from ldm.models.diffusion.plms import PLMSSampler
 from diffusers.pipelines.stable_diffusion.safety_checker import StableDiffusionSafetyChecker
 from transformers import AutoFeatureExtractor
 
+import boto3
+from redis import Redis
+import base64
+import os
+
+kms_client = boto3.client("kms", region_name=os.environ['AWS_REGION'])
+
+def decrypt(encrypted_text):
+    response = kms_client.decrypt(
+        CiphertextBlob=base64.b64decode(encrypted_text),
+        KeyId=os.environ['KMS_KEY_ID'])
+    return response["Plaintext"]
+
+REDIS_HOST = decrypt(os.environ['REDIS_HOST'])
+REDIS_PORT = decrypt(os.environ['REDIS_PORT'])
+REDIS_PASSWORD = decrypt(os.environ['REDIS_PASSWORD'])
+
+conn = Redis(
+    host=REDIS_HOST,
+    port=REDIS_PORT,
+    password=REDIS_PASSWORD,
+    decode_responses=True)
+#conn.set("status:%s" % task_id, "COMPLETED:%s" % final_image_url)
+
+
 # Globals
 opt, device, model, config, outpath, wm_encoder = None, None, None, None, None, None
 
@@ -354,6 +379,7 @@ def paint(task_id, job_config):
 
                         if not opt.skip_grid:
                             all_samples.append(x_checked_image_torch)
+                        conn.set("status:%s" % task_id, "PROGRESS: %s/%s completed" % (str(n), str(opt.n_iter)))
 
                 if not opt.skip_grid:
                     # additionally, save as grid
