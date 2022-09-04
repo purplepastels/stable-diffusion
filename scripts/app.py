@@ -324,10 +324,10 @@ def paint(task_id, job_config):
             data = f.read().splitlines()
             data = list(chunk(data, batch_size))
 
-    sample_path = os.path.join(outpath, "samples")
-    os.makedirs(sample_path, exist_ok=True)
-    base_count = len(os.listdir(sample_path))
-    grid_count = len(os.listdir(outpath)) - 1
+    #sample_path = os.path.join(outpath, "samples")
+    #os.makedirs(sample_path, exist_ok=True)
+    #base_count = len(os.listdir(sample_path))
+    #grid_count = len(os.listdir(outpath)) - 1
     # We want successive runs to overwrite, since we are savings generated images in S3
     base_count = 0
     grid_count = 0
@@ -374,7 +374,7 @@ def paint(task_id, job_config):
                                 x_sample = 255. * rearrange(x_sample.cpu().numpy(), 'c h w -> h w c')
                                 img = Image.fromarray(x_sample.astype(np.uint8))
                                 img = put_watermark(img, wm_encoder)
-                                img.save(os.path.join(sample_path, f"{base_count:05}.png"))
+                                img.save(os.path.join(outpath, "%d.png" % base_count))
                                 base_count += 1
 
                         if not opt.skip_grid:
