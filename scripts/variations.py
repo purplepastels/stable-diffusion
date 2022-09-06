@@ -1,5 +1,4 @@
-"""make variations of input image"""
-
+import imghdr
 import sys
 sys.path.insert(0, '/home/deblina/modelserver/stable-diffusion')
 
@@ -122,8 +121,7 @@ def module_init():
         "--outdir",
         type=str,
         nargs="?",
-        help="dir to write results to",
-        default="stable-diffusion/outputs/img2img-samples"
+        help="dir to write results to"
     )
 
     parser.add_argument(
@@ -135,7 +133,7 @@ def module_init():
     parser.add_argument(
         "--skip_save",
         action='store_true',
-        help="do not save indiviual samples. For speed measurements.",
+        help="do not save individual samples. For speed measurements.",
     )
 
     parser.add_argument(
@@ -150,6 +148,7 @@ def module_init():
         action='store_true',
         help="use plms sampling",
     )
+
     parser.add_argument(
         "--fixed_code",
         action='store_true',
@@ -162,12 +161,13 @@ def module_init():
         default=0.0,
         help="ddim eta (eta=0.0 corresponds to deterministic sampling",
     )
+
     parser.add_argument(
         "--n_iter",
         type=int,
-        default=1,
         help="sample this often",
     )
+
     parser.add_argument(
         "--C",
         type=int,
@@ -180,22 +180,24 @@ def module_init():
         default=8,
         help="downsampling factor, most often 8 or 16",
     )
+
     parser.add_argument(
         "--n_samples",
         type=int,
-        default=2,
-        help="how many samples to produce for each given prompt. A.k.a batch size",
+        default=3,
+        help="how many samples to produce for each given prompt. A.k.a. batch size",
     )
+
     parser.add_argument(
         "--n_rows",
         type=int,
         default=0,
         help="rows in the grid (default: n_samples)",
     )
+
     parser.add_argument(
         "--scale",
         type=float,
-        default=5.0,
         help="unconditional guidance scale: eps = eps(x, empty) + scale * (eps(x, cond) - eps(x, empty))",
     )
 
@@ -205,29 +207,34 @@ def module_init():
         default=0.75,
         help="strength for noising/unnoising. 1.0 corresponds to full destruction of information in init image",
     )
+
     parser.add_argument(
         "--from-file",
         type=str,
         help="if specified, load prompts from this file",
     )
+
     parser.add_argument(
         "--config",
         type=str,
-        default="configs/stable-diffusion/v1-inference.yaml",
+        default="stable-diffusion/configs/stable-diffusion/v1-inference.yaml",
         help="path to config which constructs model",
     )
+
     parser.add_argument(
         "--ckpt",
         type=str,
-        default="models/ldm/stable-diffusion-v1/model.ckpt",
+        default="stable-diffusion/models/ldm/stable-diffusion-v1/model.ckpt",
         help="path to checkpoint of model",
     )
+
     parser.add_argument(
         "--seed",
         type=int,
         default=42,
         help="the seed (for reproducible sampling)",
     )
+
     parser.add_argument(
         "--precision",
         type=str,
@@ -247,18 +254,19 @@ def module_init():
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     model = model.to(device)
 
-    os.makedirs(opt.outdir, exist_ok=True)
-    outpath = opt.outdir
-
+    
 def gen_variations(task_id, job_config):
     # Following lines will run on a per invocation basis
 
     populate_options_from_config(job_config)
 
-    print("Painter config: prompt: %s, strength: %s, isPlms: %s, n_iter: %s" % (opt.prompt, str(opt.strength), str(opt.plms), opt.n_iter))
+    os.makedirs(opt.outdir, exist_ok=True)
+    outpath = opt.outdir
+
+    print("Config: prompt: %s, isPlms: %s, strength: %s, n_iter: %s, scale: %s" % (opt.prompt, str(opt.plms), str(opt.strength), str(opt.n_iter), str(opt.scale)))
 
     if opt.plms:
-        #raise NotImplementedError("PLMS sampler not (yet) supported")
+        raise NotImplementedError("PLMS sampler not (yet) supported")
         sampler = PLMSSampler(model)
     else:
         sampler = DDIMSampler(model)
@@ -322,10 +330,11 @@ def gen_variations(task_id, job_config):
                         if not opt.skip_save:
                             for x_sample in x_samples:
                                 x_sample = 255. * rearrange(x_sample.cpu().numpy(), 'c h w -> h w c')
-                                Image.fromarray(x_sample.astype(np.uint8)).save(
-                                    os.path.join(sample_path, f"{base_count:05}.png"))
+                                img = Image.fromarray(x_sample.astype(np.uint8))
+                                img.save(os.path.join(outpath, "%d.png" % base_count))
                                 base_count += 1
                         all_samples.append(x_samples)
+                        conn.set("status:%s" % task_id, "PROGRESS: %s/%s completed" % (str(n+1), str(opt.n_iter)))
 
                 if not opt.skip_grid:
                     # additionally, save as grid
@@ -335,12 +344,12 @@ def gen_variations(task_id, job_config):
 
                     # to image
                     grid = 255. * rearrange(grid, 'c h w -> h w c').cpu().numpy()
-                    Image.fromarray(grid.astype(np.uint8)).save(os.path.join(outpath, f'grid-{grid_count:04}.png'))
+                    img = Image.fromarray(grid.astype(np.uint8))
+                    img.save(os.path.join(outpath, 'grid.png'))
                     grid_count += 1
 
                 toc = time.time()
 
-    print(f"Your samples are ready and waiting for you here: \n{outpath} \n"
-          f" \nEnjoy.")
+    print(f"Samples generated at: {outpath}")
 
 module_init()
