@@ -338,6 +338,8 @@ def paint(task_id, job_config):
     populate_options_from_config(job_config)
 
     print("Config: prompt: %s, isPlms: %s, strength: %s, n_iter: %s, scale: %s" % (opt.prompt, str(opt.plms), str(opt.strength), str(opt.n_iter), str(opt.scale)))
+   
+    opt.n_samples = opt.n_iter
     
     if opt.plms == 1:
         sampler = PLMSSampler(model)
@@ -437,6 +439,8 @@ def gen_variations(task_id, job_config):
     populate_options_from_config(job_config)
 
     print("Config: prompt: %s, isPlms: %s, strength: %s, n_iter: %s, scale: %s" % (opt.prompt, str(opt.plms), str(opt.strength), str(opt.n_iter), str(opt.scale)))
+
+    opt.n_samples = opt.n_iter
 
     if opt.plms == 1:
         raise NotImplementedError("PLMS sampler not (yet) supported")
