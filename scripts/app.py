@@ -140,6 +140,7 @@ def populate_options_from_config(config):
     for key in config.keys():
         if hasattr(opt, key):
             if key in store_true: setattr(opt, key, True)
+            elif key in ["scale", "strength"]: setattr(opt, key, float(config[key]))
             else:
                 val = config[key]
                 try:
@@ -431,6 +432,8 @@ def paint(task_id, job_config):
 def gen_variations(task_id, job_config):
     # Following lines will run on a per invocation basis
 
+    print("Job Config: ", job_config)
+
     populate_options_from_config(job_config)
 
     print("Config: prompt: %s, isPlms: %s, strength: %s, n_iter: %s, scale: %s" % (opt.prompt, str(opt.plms), str(opt.strength), str(opt.n_iter), str(opt.scale)))
@@ -523,3 +526,12 @@ def gen_variations(task_id, job_config):
     print(f"Samples generated at: {outpath}")
 
 module_init()
+
+if __name__ == "__main__":
+    gen_variations(task_id="task-id-gen_variations-test", job_config={
+        "prompt": "a random picture",
+        "n_iter": 2,
+        "scale": "5.0",
+        "strength": "0.75",
+        "init_img": "stable-diffusion/inputs/task-inputs/input.png"
+    })

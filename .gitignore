@@ -1,5 +1,6 @@
 __pycache__/
 src/
 *.egg-info
+inputs/
 outputs/
 models/
