@@ -136,7 +136,7 @@ def check_safety(x_image):
 
 def populate_options_from_config(config):
     global opt
-    store_true = ["skip_grid", "skip_save", "plms", "fixed_code"]
+    store_true = ["skip_grid", "skip_save", "fixed_code"]
     for key in config.keys():
         if hasattr(opt, key):
             if key in store_true: setattr(opt, key, True)
@@ -198,8 +198,9 @@ def module_init():
 
     parser.add_argument(
         "--plms",
-        action='store_true',
-        help="use plms sampling",
+        type=int,
+        default=1,
+        help="Whether to use plms sampling. 1 to use, 0 to not use"
     )
     
     parser.add_argument(
@@ -338,8 +339,7 @@ def paint(task_id, job_config):
 
     print("Config: prompt: %s, isPlms: %s, strength: %s, n_iter: %s, scale: %s" % (opt.prompt, str(opt.plms), str(opt.strength), str(opt.n_iter), str(opt.scale)))
     
-    if opt.plms:
-        #raise NotImplementedError("PLMS sampler not (yet) supported")
+    if opt.plms == 1:
         sampler = PLMSSampler(model)
     else:
         sampler = DDIMSampler(model)
@@ -438,7 +438,7 @@ def gen_variations(task_id, job_config):
 
     print("Config: prompt: %s, isPlms: %s, strength: %s, n_iter: %s, scale: %s" % (opt.prompt, str(opt.plms), str(opt.strength), str(opt.n_iter), str(opt.scale)))
 
-    if opt.plms:
+    if opt.plms == 1:
         raise NotImplementedError("PLMS sampler not (yet) supported")
         sampler = PLMSSampler(model)
     else:
